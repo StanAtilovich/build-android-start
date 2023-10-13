@@ -20,6 +20,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.firebase.ui.auth.AuthUI
@@ -27,6 +28,9 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 
 import com.google.firebase.codelab.friendlychat.databinding.ActivityMainBinding
+import com.google.firebase.codelab.friendlychat.model.FriendlyMessage
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.StorageReference
 
@@ -34,6 +38,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var manager: LinearLayoutManager
     private lateinit var auth: FirebaseAuth
+    private lateinit var db: FirebaseDatabase
 
     val intentSingInActivity by lazy {
         Intent(this, SignInActivity::class.java)
@@ -53,6 +58,9 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        db = Firebase.database
+        val messagesRef = db.reference.child(MESSAGES_CHILD)
+
         auth = Firebase.auth
         checkAuthCurrentUser()
         // Initialize Realtime Database and FirebaseRecyclerAdapter
@@ -63,7 +71,11 @@ class MainActivity : AppCompatActivity() {
         binding.messageEditText.addTextChangedListener(MyButtonObserver(binding.sendButton))
 
         // When the send button is clicked, send a text message
-        // TODO: implement
+        binding.sendButton.setOnClickListener {
+            val friendlyMessage = FriendlyMessage()
+
+            messagesRef.child(MESSAGES_CHILD).push().setValue("sdsdgs")
+        }
 
         // When the image button is clicked, launch the image picker
         binding.addMessageImageView.setOnClickListener {
@@ -126,6 +138,7 @@ class MainActivity : AppCompatActivity() {
     private fun signOut() {
         AuthUI.getInstance().signOut(this)
         startActivity(intentSingInActivity)
+        Toast.makeText(this, "Вышли из аккаунта", Toast.LENGTH_LONG).show()
     }
 
 
