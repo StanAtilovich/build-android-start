@@ -72,9 +72,13 @@ class MainActivity : AppCompatActivity() {
 
         // When the send button is clicked, send a text message
         binding.sendButton.setOnClickListener {
-            val friendlyMessage = FriendlyMessage()
-
-            messagesRef.child(MESSAGES_CHILD).push().setValue("sdsdgs")
+            val friendlyMessage = FriendlyMessage(
+                text = binding.messageEditText.text.toString(),
+                name = getUserName(),
+                photoUrl = getPhotoUrl(),
+                imageUrl = null
+            )
+            messagesRef.child(MESSAGES_CHILD).push().setValue(friendlyMessage)
         }
 
         // When the image button is clicked, launch the image picker
