@@ -18,6 +18,7 @@ package com.google.firebase.codelab.friendlychat
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
@@ -29,10 +30,12 @@ import com.google.firebase.auth.ktx.auth
 
 import com.google.firebase.codelab.friendlychat.databinding.ActivityMainBinding
 import com.google.firebase.codelab.friendlychat.model.FriendlyMessage
+import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.StorageReference
+import com.google.firebase.storage.ktx.storage
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
@@ -79,6 +82,7 @@ class MainActivity : AppCompatActivity() {
                 imageUrl = null
             )
             messagesRef.child(MESSAGES_CHILD).push().setValue(friendlyMessage)
+            binding.messageEditText.setText("")
         }
 
         // When the image button is clicked, launch the image picker
@@ -131,12 +135,43 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onImageSelected(uri: Uri) {
-        // TODO: implement
+        Log.d(TAG, "картинка выбрана ${uri}")
+        val user = auth.currentUser
+        val tempMessage = FriendlyMessage(null, getUserName(), getPhotoUrl(), LOADING_IMAGE_URL)
+        db.reference.child(MESSAGES_CHILD).push().setValue(
+            tempMessage,
+            DatabaseReference.CompletionListener { dbError, dbRef ->
+                if (dbError != null) {
+                    Log.d(TAG, "невозможно отправить сообщение", dbError.toException())
+                    return@CompletionListener
+                }
+                val key = dbRef.key
+                val storageReference = Firebase.storage
+                    .getReference(user!!.uid)
+                    .child(key!!)
+                    .child(uri.lastPathSegment!!)
+                putImageInStorage(storageReference, uri, key)
+            }
+        )
     }
 
     private fun putImageInStorage(storageReference: StorageReference, uri: Uri, key: String?) {
         // Upload the image to Cloud Storage
-        // TODO: implement
+        storageReference.putFile(uri)
+            .addOnSuccessListener(this) { task ->
+                task.metadata!!.reference!!.downloadUrl
+                    .addOnSuccessListener { uri ->
+                        val friendlyMessage =
+                            FriendlyMessage(null, getUserName(), getPhotoUrl(), uri.toString())
+                        db.reference
+                            .child(MESSAGES_CHILD)
+                            .child(key!!)
+                            .setValue(friendlyMessage)
+                    }
+            }
+            .addOnFailureListener(this) {
+                Log.d(TAG, "все жопа провалилось", it)
+            }
     }
 
     private fun signOut() {
